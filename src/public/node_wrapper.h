@@ -44,7 +44,7 @@ struct _JSValue {
 typedef struct _JSValue JS_Value;
 
 NWRAP_EXTERN(bool)
-JS_CallFunction(JS_Value &fnc, JS_Value *params, const int argc, JS_Value &out);
+JS_CallFunction(JS_Value &fnc, JS_Value *params, const int argc, JS_Value *out);
 
 NWRAP_EXTERN(bool)
 JS_MakePersistent(JS_Value &value);

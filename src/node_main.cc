@@ -2,6 +2,7 @@
 #include "public/tests/commons/common-posix.h"
 
 void sampleMethod(JS_Value *params, int argc) {
+  printf("Called\n");
   JS_Value obj;
   JS_CreateEmptyObject(obj);
   JS_SetNamedProperty(obj, "i1", params[0]);
@@ -28,6 +29,10 @@ int main(int argc, char **args) {
   JS_Value smethod;
   JS_GetNamedProperty(natives, "sampleMethod", smethod);
 
+  JS_Value out;
+  JS_CallFunction(smethod, nullptr, 0, &out);
+
+  JS_Free(out);
 printf(">> closing %d \n", JS_IsFunction(smethod));
   JS_StopEngine();
 }

@@ -1,7 +1,6 @@
 // See LICENSE file
 
 #include "node.h"
-#include "wrapper_private.h"
 #include "node_wrapper.h"
 #include "node_internal_wrapper.h"
 #include <stdio.h>
@@ -14,29 +13,30 @@
 class ScopeWatch {
   static bool in_scope_;
   bool entered_;
+  bool in_scope_faked_;
   v8::Isolate *isolate_;
-public:
-  ScopeWatch(v8::Isolate *isolate):isolate_(isolate) {
+
+ public:
+  ScopeWatch(v8::Isolate *isolate, bool fake_in_scope = false)
+    : isolate_(isolate), entered_(false), in_scope_faked_(fake_in_scope) {
     if (!IsInScope()) EnterScope();
   }
 
-  static bool IsInScope() {
-    return in_scope_;
-  }
+  static bool IsInScope() { return in_scope_; }
 
-  bool EnteredNewScope() {
-    return entered_;
-  }
+  bool EnteredNewScope() { return entered_; }
 
   void EnterScope() {
-    isolate_->Enter();
+    if (!in_scope_faked_)
+      isolate_->Enter();
     entered_ = true;
     in_scope_ = true;
   }
 
   ~ScopeWatch() {
     if (entered_) {
-      isolate_->Exit();
+      if (!in_scope_faked_)
+        isolate_->Exit();
       in_scope_ = false;
     }
   }
@@ -74,7 +74,7 @@ JS_HANDLE_VALUE JS_Parse(node::Environment *env, const char *str) {
 }
 
 bool ConvertToJSValue(node::Environment *env, JS_HANDLE_VALUE_REF ret_val,
-                                JS_Value *result) {
+                      JS_Value *result) {
   assert(result->com_ && "Object wasn't initialized");
   result->persistent_ = false;
 
@@ -95,9 +95,7 @@ bool ConvertToJSValue(node::Environment *env, JS_HANDLE_VALUE_REF ret_val,
   if (JS_IS_BOOLEAN(ret_val)) {
     result->type_ = RT_Boolean;
     result->size_ = sizeof(bool);
-  }
-
-  if (JS_IS_NUMBER(ret_val)) {
+  } else if (JS_IS_NUMBER(ret_val)) {
     if (JS_IS_INT32(ret_val)) {
       result->type_ = RT_Int32;
       result->size_ = sizeof(int32_t);
@@ -105,14 +103,10 @@ bool ConvertToJSValue(node::Environment *env, JS_HANDLE_VALUE_REF ret_val,
       result->type_ = RT_Double;
       result->size_ = sizeof(double);
     }
-  }
-
-  if (JS_IS_BUFFER(ret_val)) {
+  } else if (JS_IS_BUFFER(ret_val)) {
     result->type_ = RT_Buffer;
     result->size_ = BUFFER__LENGTH(ret_val);
-  }
-
-  if (JS_IS_STRING(ret_val)) {
+  } else if (JS_IS_STRING(ret_val)) {
     result->type_ = RT_String;
     JS_LOCAL_STRING str = JS_VALUE_TO_STRING(ret_val);
     result->size_ = JS_GET_STRING_LENGTH(str);
@@ -178,14 +172,10 @@ JS_IsBoolean(JS_Value &value) {
 }
 
 NWRAP_EXTERN(bool)
-JS_IsString(JS_Value &value) {
-  return value.type_ == RT_String;
-}
+JS_IsString(JS_Value &value) { return value.type_ == RT_String; }
 
 NWRAP_EXTERN(bool)
-JS_IsJSON(JS_Value &value) { 
-  return JS_IsObject(value);
-}
+JS_IsJSON(JS_Value &value) { return JS_IsObject(value); }
 
 NWRAP_EXTERN(bool)
 JS_IsBuffer(JS_Value &value) {
@@ -193,14 +183,10 @@ JS_IsBuffer(JS_Value &value) {
 }
 
 NWRAP_EXTERN(bool)
-JS_IsUndefined(JS_Value &value) {
-  return value.type_ == RT_Undefined;
-}
+JS_IsUndefined(JS_Value &value) { return value.type_ == RT_Undefined; }
 
 NWRAP_EXTERN(bool)
-JS_IsNull(JS_Value &value) {
-  return value.type_ == RT_Null;
-}
+JS_IsNull(JS_Value &value) { return value.type_ == RT_Null; }
 
 NWRAP_EXTERN(bool)
 JS_IsNullOrUndefined(JS_Value &value) {
@@ -208,9 +194,7 @@ JS_IsNullOrUndefined(JS_Value &value) {
 }
 
 NWRAP_EXTERN(bool)
-JS_IsObject(JS_Value &value) {
-  return value.type_ == RT_Object;
-}
+JS_IsObject(JS_Value &value) { return value.type_ == RT_Object; }
 
 NWRAP_EXTERN(int32_t)
 JS_GetInt32(JS_Value &value) {
@@ -254,22 +238,6 @@ JS_GetBoolean(JS_Value &value) {
   return ret;
 }
 
-// SM allocates memory using JS_malloc
-// we need to free that memory
-// and allocate externally
-#ifdef JS_ENGINE_MOZJS
-#define MOZ_CLEAR_                  \
-  char *ret_ = strdup(ret);         \
-  if (ret_ == NULL) {               \
-    return ret;                     \
-  }                                 \
-                                    \
-  JS_free(__contextORisolate, ret); \
-  ret = ret_;
-#else
-#define MOZ_CLEAR_
-#endif
-
 NWRAP_EXTERN(char *)
 JS_GetString(JS_Value &value) {
   EMPTY_CHECK(0);
@@ -284,6 +252,7 @@ JS_GetString(JS_Value &value) {
         JS_LOCAL_OBJECT objl = JS_OBJECT_FROM_PERSISTENT(wrap->value_);
         ret = strdup(STRING_TO_STD(JS_VALUE_TO_STRING(objl)));
       } break;
+      case RT_Error:
       case RT_Object: {
         JS_LOCAL_OBJECT obj = JS_OBJECT_FROM_PERSISTENT(wrap->value_);
         ret = strdup(STRING_TO_STD(obj));
@@ -374,17 +343,17 @@ JS_Free(JS_Value &value) {
 }
 
 NWRAP_EXTERN(bool)
-JS_CallFunction(JS_Value &fnc, JS_Value *params, const int argc, JS_Value &out) {
+JS_CallFunction(JS_Value &fnc, JS_Value *params, const int argc,
+                JS_Value *out) {
   UNWRAP_COM(fnc);
 
-  out.com_ = fnc.com_;
-  out.data_ = NULL;
-  out.size_ = 0;
-  out.type_ = RT_Undefined;
+  out->com_ = fnc.com_;
+  out->data_ = NULL;
+  out->size_ = 0;
+  out->type_ = RT_Undefined;
 
   if (fnc.type_ != RT_Function || env == NULL ||
       sizeof(JSFunctionWrapper) != fnc.size_) {
-    JS_SetUndefined(out);
     return false;
   }
 
@@ -403,12 +372,10 @@ JS_CallFunction(JS_Value &fnc, JS_Value *params, const int argc, JS_Value &out) 
           params[i].data_ == NULL) {
         arr[i] = params[i].type_ == RT_Undefined ? JS_UNDEFINED() : JS_NULL();
       } else if (params[i].type_ == RT_Function) {
-        JSFunctionWrapper *fnc_wrap =
-            (JSFunctionWrapper *)params[i].data_;
+        JSFunctionWrapper *fnc_wrap = (JSFunctionWrapper *)params[i].data_;
         arr[i] = fnc_wrap->GetFunction();
       } else {
-        JSValueWrapper *wrap =
-            (JSValueWrapper *)params[i].data_;
+        JSValueWrapper *wrap = (JSValueWrapper *)params[i].data_;
         arr[i] = JS_TYPE_TO_LOCAL_VALUE(wrap->value_);
       }
     }
@@ -416,10 +383,9 @@ JS_CallFunction(JS_Value &fnc, JS_Value *params, const int argc, JS_Value &out) 
     free(arr);
 
     if (!done) {
-      JS_SetUndefined(out);
       ret = false;
     } else {
-      ret = ConvertToJSValue(env, res, &out);
+      ret = ConvertToJSValue(env, res, out);
     }
   });
 
@@ -480,7 +446,8 @@ JS_SetBoolean(JS_Value &value, const bool val) {
   RUN_IN_SCOPE({ JS_NEW_PERSISTENT_VALUE(wrap->value_, STD_TO_BOOLEAN(val)); });
 }
 
-inline void SetString(JS_ValueType valueType, JS_Value &value, const char *val, const int32_t length) {
+inline void SetString(JS_ValueType valueType, JS_Value &value, const char *val,
+                      const int32_t length) {
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
 
@@ -549,7 +516,8 @@ JS_SetBuffer(JS_Value &value, const char *val, const int32_t length) {
 
   RUN_IN_SCOPE({
     char *data = strdup(val);
-    v8::Local<v8::Object> buff = node::Buffer::New(env, data, length).ToLocalChecked();
+    v8::Local<v8::Object> buff =
+        node::Buffer::New(env, data, length).ToLocalChecked();
     JS_NEW_PERSISTENT_VALUE(wrap->value_, buff);
   });
 }
@@ -577,8 +545,7 @@ JS_SetObject(JS_Value &value_to, JS_Value &value_from) {
   value_to.type_ = RT_Object;
   value_to.size_ = 1;
 
-  JSValueWrapper *wrap_from =
-      (JSValueWrapper *)value_from.data_;
+  JSValueWrapper *wrap_from = (JSValueWrapper *)value_from.data_;
   RUN_IN_SCOPE({ JS_NEW_PERSISTENT_VALUE(wrap->value_, wrap_from->value_); });
   value_to.persistent_ = false;
 }
@@ -614,7 +581,7 @@ JS_ClearPersistent(JS_Value &value) {
 
 NWRAP_EXTERN(bool)
 JS_New(JS_Value &value) {
-  node::Environment* env = node::__GetNodeEnvironment();
+  node::Environment *env = node::__GetNodeEnvironment();
 
   value.com_ = env;
   value.persistent_ = false;
@@ -625,7 +592,7 @@ JS_New(JS_Value &value) {
 
 NWRAP_EXTERN(bool)
 JS_CreateEmptyObject(JS_Value &value) {
-  node::Environment* env = node::__GetNodeEnvironment();
+  node::Environment *env = node::__GetNodeEnvironment();
 
   if (env == NULL) return false;
   JS_DEFINE_STATE_MARKER(env);
@@ -648,7 +615,7 @@ JS_CreateEmptyObject(JS_Value &value) {
 
 NWRAP_EXTERN(bool)
 JS_CreateArrayObject(JS_Value &value) {
-  node::Environment* env = node::__GetNodeEnvironment();
+  node::Environment *env = node::__GetNodeEnvironment();
 
   if (env == NULL) return false;
   JS_DEFINE_STATE_MARKER(env);
@@ -755,13 +722,11 @@ JS_GetIndexedProperty(JS_Value &object, const int index, JS_Value &out) {
 }
 
 NWRAP_EXTERN(int)
-JS_GetThreadIdByValue(JS_Value &value) {
-  return 0;
-}
+JS_GetThreadIdByValue(JS_Value &value) { return 0; }
 
 NWRAP_EXTERN(void)
 JS_GetGlobalObject(JS_Value &out) {
-  node::Environment* env = node::__GetNodeEnvironment();
+  node::Environment *env = node::__GetNodeEnvironment();
   JS_DEFINE_STATE_MARKER(env);
   ScopeWatch watcher(__contextORisolate);
 
@@ -778,7 +743,7 @@ JS_GetGlobalObject(JS_Value &out) {
 
 NWRAP_EXTERN(void)
 JS_GetProcessObject(JS_Value &out) {
-  node::Environment* env = node::__GetNodeEnvironment();
+  node::Environment *env = node::__GetNodeEnvironment();
   JS_DEFINE_STATE_MARKER(env);
   ScopeWatch watcher(__contextORisolate);
 
@@ -829,23 +794,23 @@ char *app_args[2];
 
 // allocates one extra JS_Value memory at the end of the array
 // Uses that one for a return value
-#define CONVERT_ARG_TO_RESULT(results, context)                  \
-  JS_Value *results = NULL;                                      \
-  const int len = args.Length() - start_arg;                     \
-  {                                                              \
-    results = (JS_Value *)malloc(sizeof(JS_Value) * (len + 1));  \
-    for (int i = 0; i < len; i++) {                              \
-      JS_HANDLE_VALUE val = args[i + start_arg];                 \
-      results[i].com_ = context;                                 \
-      results[i].data_ = NULL;                                   \
-      results[i].size_ = 0;                                      \
-      results[i].type_ = RT_Undefined;                           \
-      ConvertToJSValue(env, val, &results[i]); \
-    }                                                            \
-    results[len].com_ = context;                                 \
-    results[len].data_ = NULL;                                   \
-    results[len].size_ = 0;                                      \
-    results[len].type_ = RT_Undefined;                           \
+#define CONVERT_ARG_TO_RESULT(results, context)                 \
+  JS_Value *results = NULL;                                     \
+  const int len = args.Length() - start_arg;                    \
+  {                                                             \
+    results = (JS_Value *)malloc(sizeof(JS_Value) * (len + 1)); \
+    for (int i = 0; i < len; i++) {                             \
+      JS_HANDLE_VALUE val = args[i + start_arg];                \
+      results[i].com_ = context;                                \
+      results[i].data_ = NULL;                                  \
+      results[i].size_ = 0;                                     \
+      results[i].type_ = RT_Undefined;                          \
+      ConvertToJSValue(env, val, &results[i]);                  \
+    }                                                           \
+    results[len].com_ = context;                                \
+    results[len].data_ = NULL;                                  \
+    results[len].size_ = 0;                                     \
+    results[len].type_ = RT_Undefined;                          \
   }
 
 static int extension_id = 0;
@@ -949,9 +914,8 @@ void DeclareProxy(node::Environment *env, JS_HANDLE_OBJECT_REF methods,
 }
 
 void DefineProxyMethod(JS_HANDLE_OBJECT obj, const char *name,
-                                 const int interface_id,
-                                 JS_NATIVE_METHOD method) {
-  node::Environment* env = node::__GetNodeEnvironment();
+                       const int interface_id, JS_NATIVE_METHOD method) {
+  node::Environment *env = node::__GetNodeEnvironment();
   JS_LOCAL_OBJECT natives = JS_VALUE_TO_OBJECT(obj);
 
   DeclareProxy(env, natives, name, interface_id, method);
@@ -979,7 +943,7 @@ void JS_SetProcessNative(const char *name, JS_CALLBACK callback) {
          "Maximum amount of extension methods reached.");
   callbacks[id] = callback;
 
-  node::Environment* env = node::__GetNodeEnvironment();
+  node::Environment *env = node::__GetNodeEnvironment();
   JS_DEFINE_STATE_MARKER(env);
   ScopeWatch watcher(env->isolate());
 
@@ -992,7 +956,8 @@ void JS_SetProcessNative(const char *name, JS_CALLBACK callback) {
       JS_NAME_SET(process, strNatives, natives_);
     }
 
-    JS_HANDLE_OBJECT natives = JS_VALUE_TO_OBJECT(JS_GET_NAME(process, strNatives));
+    JS_HANDLE_OBJECT natives =
+        JS_VALUE_TO_OBJECT(JS_GET_NAME(process, strNatives));
 
     DefineProxyMethod(natives, name, id, extensionCallback);
   });
@@ -1034,35 +999,29 @@ bool Evaluate(const char *source, const char *filename, JS_Value &result) {
 
 bool JS_Evaluate(const char *data, const char *script_name, JS_Value &out) {
   const char *name = script_name == NULL ? "JS_Evaluate" : script_name;
-  node::Environment* env = node::__GetNodeEnvironment();
+  node::Environment *env = node::__GetNodeEnvironment();
   JS_DEFINE_STATE_MARKER(env);
   ScopeWatch watcher(__contextORisolate);
 
-  RUN_IN_SCOPE({
-    return Evaluate(data, name, out);
-  });
+  RUN_IN_SCOPE({ return Evaluate(data, name, out); });
 }
 
 void JS_DefineMainFile(const char *data) {
-//  engine->MemoryMap("main.js", data, strlen(data), true);
+  //  engine->MemoryMap("main.js", data, strlen(data), true);
 }
 
 void JS_DefineFile(const char *name, const char *file) {
-//  engine->MemoryMap(name, file, strlen(file));
+  //  engine->MemoryMap(name, file, strlen(file));
 }
 
-int JS_LoopOnce() {
-  return node::__Loop(true);
-}
+int JS_LoopOnce() { return node::__Loop(true); }
 
-int JS_Loop() {
-  return node::__Loop(false);
-}
+int JS_Loop() { return node::__Loop(false); }
 
 void JS_StartEngine(int argc, char **argv) {
-  #if defined(__IOS__) || defined(__ANDROID__) || defined(DEBUG)
-    warn_console("Node engine is starting\n");
-  #endif
+#if defined(__IOS__) || defined(__ANDROID__) || defined(DEBUG)
+  warn_console("Node engine is starting\n");
+#endif
   node::__Start(argc, argv);
   JS_LoopOnce();
 }
@@ -1079,9 +1038,7 @@ bool JS_IsV8() {
 #endif
 }
 
-bool JS_IsSpiderMonkey() {
-  return false;
-}
+bool JS_IsSpiderMonkey() { return false; }
 
 bool JS_IsChakra() {
 #ifdef JS_ENGINE_CHAKRA
