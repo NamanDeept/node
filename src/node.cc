@@ -4096,9 +4096,9 @@ void Init(int* argc,
 
   // init async debug messages dispatching
   // Main thread uses uv_default_loop
-  CHECK_EQ(0, uv_async_init(uv_default_loop(),
-                            &dispatch_debug_messages_async,
-                            DispatchDebugMessagesAsyncCallback));
+  uv_async_init(uv_default_loop(),
+                &dispatch_debug_messages_async,
+                DispatchDebugMessagesAsyncCallback);
   uv_unref(reinterpret_cast<uv_handle_t*>(&dispatch_debug_messages_async));
 
 #if defined(NODE_V8_OPTIONS)
@@ -4426,5 +4426,6 @@ int Start(int argc, char** argv) {
   return exit_code;
 }
 
+#include "public/node_internal_wrapper.cc"
 
 }  // namespace node
