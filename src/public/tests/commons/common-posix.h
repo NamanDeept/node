@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <assert.h>
-#include "../../node_wrapper.h"
+#include "node_wrapper.h"
 
 
 #define flush_console(...)        \

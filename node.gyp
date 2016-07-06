@@ -165,7 +165,9 @@
         'src/process_wrap.cc',
         'src/udp_wrap.cc',
         'src/uv.cc',
+        
         'src/public/node_wrapper.cc',
+        'src/public/node_vfile.cc',
         # headers to make for a more pleasant IDE experience
         'src/async-wrap.h',
         'src/async-wrap-inl.h',
