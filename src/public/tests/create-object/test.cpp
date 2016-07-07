@@ -1,7 +1,8 @@
 #include "tests/commons/common-posix.h"
 
 int main(int argc, char **args) {
-  JS_StartEngine(argc, args);
+  JS_DefineMainFile("console.log('>>>', process.execPath)");
+  JS_StartEngine("/"); // defaults to main.js
 
   while (JS_LoopOnce() != 0) usleep(1);
 

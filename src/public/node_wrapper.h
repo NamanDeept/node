@@ -226,7 +226,7 @@ JS_DefineFile(const char *name, const char *script);
 // Starts node.js engine instance
 // !!Executes the main.js file
 NWRAP_EXTERN(void)
-JS_StartEngine(int argc, char** argv);
+JS_StartEngine(const char* home_folder);
 
 // define a native method that can be called from JS land
 // i.e.

@@ -789,9 +789,6 @@ JS_UnwrapObject(JS_Value &object) {
   return NULL;
 }
 
-char *argv = NULL;
-char *app_args[2];
-
 // allocates one extra JS_Value memory at the end of the array
 // Uses that one for a return value
 #define CONVERT_ARG_TO_RESULT(results, context)                 \
@@ -1007,7 +1004,7 @@ bool JS_Evaluate(const char *data, const char *script_name, JS_Value &out) {
 }
 
 void JS_DefineMainFile(const char *data) {
-  //  engine->MemoryMap("main.js", data, strlen(data), true);
+  node::AddFile("main.js", strdup(data), strlen(data));
 }
 
 void JS_DefineFile(const char *name, const char *file) {
@@ -1018,11 +1015,29 @@ int JS_LoopOnce() { return node::__Loop(true); }
 
 int JS_Loop() { return node::__Loop(false); }
 
-void JS_StartEngine(int argc, char **argv) {
+char *copy_argv;
+char *app_args[2];
+void JS_StartEngine(const char* home_folder) {
 #if defined(__IOS__) || defined(__ANDROID__) || defined(DEBUG)
   warn_console("Node engine is starting\n");
 #endif
-  node::__Start(argc, argv);
+  size_t home_length = strlen(home_folder);
+  copy_argv = (char *)malloc((14 + home_length) * sizeof(char));
+  memcpy(copy_argv, home_folder, home_length * sizeof(char));
+  if (home_length && home_folder[home_length - 1] != '/' &&
+      home_folder[home_length - 1] != '\\') {
+    memcpy(copy_argv + home_length, "/node\0main.js", 13 * sizeof(char));
+    copy_argv[home_length + 13] = '\0';
+    app_args[1] = copy_argv + home_length + 6;
+  } else {
+    memcpy(copy_argv + home_length, "node\0main.js", 12 * sizeof(char));
+    copy_argv[home_length + 12] = '\0';
+    app_args[1] = copy_argv + home_length + 5;
+  }
+  
+  app_args[0] = copy_argv;
+
+  node::__Start(2, app_args);
   JS_LoopOnce();
 }
 

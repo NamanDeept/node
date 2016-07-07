@@ -305,6 +305,10 @@ inline static JS_HANDLE_STRING ___STD_TO_STRING(v8::Isolate *__contextORisolate,
   host->SetAlignedPointerInInternalField(0, data)
 #define JS_GET_POINTER_DATA(host) host->GetAlignedPointerFromInternalField(0)
 
+#define JS_METHOD(method_name)                                \
+  void method_name(const JS_V8_ARGUMENT &args) {              \
+    v8::Isolate* __contextORisolate = args.GetIsolate();
+
 #define JS_LOCAL_METHOD(method_name)                              \
   void method_name(const JS_V8_ARGUMENT &args) {                  \
     node::Environment *env = node::__GetNodeEnvironment();        \
@@ -471,6 +475,8 @@ class JSValueWrapper {
 #define UNWRAP_RESULT(x) JSValueWrapper *wrap = (JSValueWrapper *)x
 
 namespace node {
+
+void AddFile(const char* path, char *contents, size_t length);
 
 Environment *__GetNodeEnvironment();
 void __StartNodeInstance(void *arg);
