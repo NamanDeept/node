@@ -479,9 +479,9 @@ namespace node {
 void AddFile(const char* path, char *contents, size_t length);
 
 Environment *__GetNodeEnvironment();
-void __StartNodeInstance(void *arg);
+void __StartNodeInstance(void *arg, void (*DEFINE_NATIVES)());
 bool __Loop(bool once);
-void __Start(int argc, char **argv);
+void __Start(int argc, char **argv, void (*DEFINE_NATIVES)());
 int __Shutdown();
 
 }  // namespace node

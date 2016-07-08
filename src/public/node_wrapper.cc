@@ -202,6 +202,7 @@ JS_GetInt32(JS_Value &value) {
 
   UNWRAP_RESULT(value.data_);
   UNWRAP_COM(value);
+  assert(env && "Did you call JS_StartEngine ?");
 
   int32_t ret;
 
@@ -216,6 +217,7 @@ JS_GetDouble(JS_Value &value) {
 
   UNWRAP_RESULT(value.data_);
   UNWRAP_COM(value);
+  assert(env && "Did you call JS_StartEngine ?");
 
   double ret;
 
@@ -230,6 +232,7 @@ JS_GetBoolean(JS_Value &value) {
 
   UNWRAP_RESULT(value.data_);
   UNWRAP_COM(value);
+  assert(env && "Did you call JS_StartEngine ?");
 
   bool ret;
 
@@ -244,6 +247,7 @@ JS_GetString(JS_Value &value) {
 
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   char *ret;
   RUN_IN_SCOPE({
@@ -302,6 +306,7 @@ JS_GetBuffer(JS_Value &value) {
 
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   char *data = NULL;
   RUN_IN_SCOPE({
@@ -396,6 +401,7 @@ NWRAP_EXTERN(void)
 JS_SetInt32(JS_Value &value, const int32_t val) {
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (wrap == NULL) {
     wrap = new JSValueWrapper();
@@ -414,6 +420,7 @@ NWRAP_EXTERN(void)
 JS_SetDouble(JS_Value &value, const double val) {
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (wrap == NULL) {
     wrap = new JSValueWrapper();
@@ -432,6 +439,7 @@ NWRAP_EXTERN(void)
 JS_SetBoolean(JS_Value &value, const bool val) {
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (wrap == NULL) {
     wrap = new JSValueWrapper();
@@ -450,6 +458,7 @@ inline void SetString(JS_ValueType valueType, JS_Value &value, const char *val,
                       const int32_t length) {
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (wrap == 0) {
     wrap = new JSValueWrapper();
@@ -476,6 +485,7 @@ NWRAP_EXTERN(void)
 JS_SetJSON(JS_Value &value, const char *val, const int32_t length) {
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (wrap == NULL) {
     wrap = new JSValueWrapper();
@@ -503,6 +513,7 @@ NWRAP_EXTERN(void)
 JS_SetBuffer(JS_Value &value, const char *val, const int32_t length) {
   UNWRAP_COM(value);
   UNWRAP_RESULT(value.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (wrap == NULL) {
     wrap = new JSValueWrapper();
@@ -532,6 +543,7 @@ NWRAP_EXTERN(void)
 JS_SetObject(JS_Value &value_to, JS_Value &value_from) {
   UNWRAP_COM(value_to);
   UNWRAP_RESULT(value_to.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   assert(value_from.type_ == RT_Object && "value_from must be an Object");
 
@@ -582,6 +594,7 @@ JS_ClearPersistent(JS_Value &value) {
 NWRAP_EXTERN(bool)
 JS_New(JS_Value &value) {
   node::Environment *env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
 
   value.com_ = env;
   value.persistent_ = false;
@@ -593,6 +606,7 @@ JS_New(JS_Value &value) {
 NWRAP_EXTERN(bool)
 JS_CreateEmptyObject(JS_Value &value) {
   node::Environment *env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (env == NULL) return false;
   JS_DEFINE_STATE_MARKER(env);
@@ -616,6 +630,7 @@ JS_CreateEmptyObject(JS_Value &value) {
 NWRAP_EXTERN(bool)
 JS_CreateArrayObject(JS_Value &value) {
   node::Environment *env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
 
   if (env == NULL) return false;
   JS_DEFINE_STATE_MARKER(env);
@@ -637,6 +652,7 @@ NWRAP_EXTERN(void)
 JS_SetNamedProperty(JS_Value &object, const char *name, JS_Value &prop) {
   UNWRAP_COM(object);
   UNWRAP_RESULT(object.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   assert(object.type_ == RT_Object && "object must be an Object");
 
@@ -660,6 +676,7 @@ NWRAP_EXTERN(void)
 JS_SetIndexedProperty(JS_Value &object, const unsigned index, JS_Value &prop) {
   UNWRAP_COM(object);
   UNWRAP_RESULT(object.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   assert(object.type_ == RT_Object && "object must be an Object");
 
@@ -683,6 +700,7 @@ NWRAP_EXTERN(void)
 JS_GetNamedProperty(JS_Value &object, const char *name, JS_Value &out) {
   UNWRAP_COM(object);
   UNWRAP_RESULT(object.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   assert(object.type_ == RT_Object && "object must be an Object");
 
@@ -706,6 +724,7 @@ NWRAP_EXTERN(void)
 JS_GetIndexedProperty(JS_Value &object, const int index, JS_Value &out) {
   UNWRAP_COM(object);
   UNWRAP_RESULT(object.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   assert(object.type_ == RT_Object && "object must be an Object");
 
@@ -727,6 +746,8 @@ JS_GetThreadIdByValue(JS_Value &value) { return 0; }
 NWRAP_EXTERN(void)
 JS_GetGlobalObject(JS_Value &out) {
   node::Environment *env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
+
   JS_DEFINE_STATE_MARKER(env);
   ScopeWatch watcher(__contextORisolate);
 
@@ -744,6 +765,8 @@ JS_GetGlobalObject(JS_Value &out) {
 NWRAP_EXTERN(void)
 JS_GetProcessObject(JS_Value &out) {
   node::Environment *env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
+
   JS_DEFINE_STATE_MARKER(env);
   ScopeWatch watcher(__contextORisolate);
 
@@ -762,6 +785,7 @@ NWRAP_EXTERN(void)
 JS_WrapObject(JS_Value &object, void *ptr) {
   UNWRAP_COM(object);
   UNWRAP_RESULT(object.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   assert(object.type_ == RT_Object && "object must be an Object");
 
@@ -776,6 +800,7 @@ NWRAP_EXTERN(void *)
 JS_UnwrapObject(JS_Value &object) {
   UNWRAP_COM(object);
   UNWRAP_RESULT(object.data_);
+  assert(env && "Did you call JS_StartEngine ?");
 
   assert(object.type_ == RT_Object && "object must be an Object");
 
@@ -812,7 +837,14 @@ JS_UnwrapObject(JS_Value &object) {
 
 static int extension_id = 0;
 #define MAX_CALLBACK_ID 1024
-static JS_CALLBACK callbacks[MAX_CALLBACK_ID] = {0};
+struct CallbackHost {
+  char* name;
+  JS_CALLBACK callback;
+  CallbackHost():name(NULL) {}
+  ~CallbackHost() { free(name); }
+};
+
+static CallbackHost callbacks[MAX_CALLBACK_ID];
 
 JS_LOCAL_METHOD(extensionCallback) {
   if (args.Length() == 0 || !args[0]->IsUint32()) {
@@ -820,13 +852,13 @@ JS_LOCAL_METHOD(extensionCallback) {
   }
 
   const int interface_id = INTEGER_TO_STD(args[0]);
-  if (interface_id >= MAX_CALLBACK_ID || callbacks[interface_id] == NULL)
+  if (interface_id >= MAX_CALLBACK_ID || callbacks[interface_id].name == NULL)
     THROW_EXCEPTION("There is no extension method for given Id");
 
   const int start_arg = 1;
   CONVERT_ARG_TO_RESULT(results, env);
 
-  callbacks[interface_id](results, len);
+  callbacks[interface_id].callback(results, len);
 
   for (int i = 0; i < len; i++) {
     JS_Free(results[i]);
@@ -913,6 +945,8 @@ void DeclareProxy(node::Environment *env, JS_HANDLE_OBJECT_REF methods,
 void DefineProxyMethod(JS_HANDLE_OBJECT obj, const char *name,
                        const int interface_id, JS_NATIVE_METHOD method) {
   node::Environment *env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
+
   JS_LOCAL_OBJECT natives = JS_VALUE_TO_OBJECT(obj);
 
   DeclareProxy(env, natives, name, interface_id, method);
@@ -923,10 +957,12 @@ void JS_SetNativeMethod(JS_Value &value, const char *name,
   int id = extension_id++;
   assert(id < MAX_CALLBACK_ID &&
          "Maximum amount of extension methods reached.");
-  callbacks[id] = callback;
+  callbacks[id].callback = callback;
+  callbacks[id].name = strdup(name);
 
   UNWRAP_RESULT(value.data_);
   UNWRAP_COM(value);
+  assert(env && "Did you call JS_StartEngine ?");
 
   RUN_IN_SCOPE({
     JS_LOCAL_OBJECT objl = JS_OBJECT_FROM_PERSISTENT(wrap->value_);
@@ -934,30 +970,37 @@ void JS_SetNativeMethod(JS_Value &value, const char *name,
   });
 }
 
+void JS_SetProcessNativeInternal(int id, const char *name, JS_CALLBACK callback) {
+  node::Environment *env = node::__GetNodeEnvironment();
+  if (env) {
+    JS_DEFINE_STATE_MARKER(env);
+    ScopeWatch watcher(env->isolate());
+
+    RUN_IN_SCOPE({
+      JS_HANDLE_OBJECT process = env->process_object();
+      JS_LOCAL_STRING strNatives = STD_TO_STRING("natives");
+
+      if (!JS_HAS_NAME(process, strNatives)) {
+        JS_HANDLE_OBJECT natives_ = JS_NEW_EMPTY_OBJECT();
+        JS_NAME_SET(process, strNatives, natives_);
+      }
+
+      JS_HANDLE_OBJECT natives =
+          JS_VALUE_TO_OBJECT(JS_GET_NAME(process, strNatives));
+
+      DefineProxyMethod(natives, name, id, extensionCallback);
+    });
+  }
+}
+
 void JS_SetProcessNative(const char *name, JS_CALLBACK callback) {
   int id = extension_id++;
   assert(id < MAX_CALLBACK_ID &&
          "Maximum amount of extension methods reached.");
-  callbacks[id] = callback;
+  callbacks[id].callback = callback;
+  callbacks[id].name = strdup(name);
 
-  node::Environment *env = node::__GetNodeEnvironment();
-  JS_DEFINE_STATE_MARKER(env);
-  ScopeWatch watcher(env->isolate());
-
-  RUN_IN_SCOPE({
-    JS_HANDLE_OBJECT process = env->process_object();
-    JS_LOCAL_STRING strNatives = STD_TO_STRING("natives");
-
-    if (!JS_HAS_NAME(process, strNatives)) {
-      JS_HANDLE_OBJECT natives_ = JS_NEW_EMPTY_OBJECT();
-      JS_NAME_SET(process, strNatives, natives_);
-    }
-
-    JS_HANDLE_OBJECT natives =
-        JS_VALUE_TO_OBJECT(JS_GET_NAME(process, strNatives));
-
-    DefineProxyMethod(natives, name, id, extensionCallback);
-  });
+  JS_SetProcessNativeInternal(id, name, callback);
 }
 
 #define MANAGE_EXCEPTION                             \
@@ -997,6 +1040,8 @@ bool Evaluate(const char *source, const char *filename, JS_Value &result) {
 bool JS_Evaluate(const char *data, const char *script_name, JS_Value &out) {
   const char *name = script_name == NULL ? "JS_Evaluate" : script_name;
   node::Environment *env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
+
   JS_DEFINE_STATE_MARKER(env);
   ScopeWatch watcher(__contextORisolate);
 
@@ -1008,16 +1053,24 @@ void JS_DefineMainFile(const char *data) {
 }
 
 void JS_DefineFile(const char *name, const char *file) {
-  //  engine->MemoryMap(name, file, strlen(file));
+  node::AddFile(name, strdup(file), strlen(file));
 }
 
 int JS_LoopOnce() { return node::__Loop(true); }
 
 int JS_Loop() { return node::__Loop(false); }
 
-char *copy_argv;
+void DEFINE_NATIVES__() {
+  for(int i=0; i < extension_id; i++) {
+    JS_SetProcessNativeInternal(i, callbacks[i].name, callbacks[i].callback);
+  }
+}
+
+char *copy_argv = NULL;
 char *app_args[2];
 void JS_StartEngine(const char* home_folder) {
+  assert(copy_argv == NULL && "This shouldn't be called twice!");
+
 #if defined(__IOS__) || defined(__ANDROID__) || defined(DEBUG)
   warn_console("Node engine is starting\n");
 #endif
@@ -1037,12 +1090,16 @@ void JS_StartEngine(const char* home_folder) {
   
   app_args[0] = copy_argv;
 
-  node::__Start(2, app_args);
+  node::__Start(2, app_args, DEFINE_NATIVES__);
+
   JS_LoopOnce();
 }
 
 void JS_QuitLoop() {
-  uv_stop(node::__GetNodeEnvironment()->isolate_data()->event_loop());
+  node::Environment* env = node::__GetNodeEnvironment();
+  assert(env && "Did you call JS_StartEngine ?");
+
+  uv_stop(env->isolate_data()->event_loop());
 }
 
 bool JS_IsV8() {

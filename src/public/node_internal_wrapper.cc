@@ -10,7 +10,7 @@ IsolateData* node_isolate_data;
 
 Environment* __GetNodeEnvironment() { return node_env; }
 
-void __StartNodeInstance(void* arg) {
+void __StartNodeInstance(void* arg, void (*DEFINE_NATIVES)()) {
   isolate_params.array_buffer_allocator = &array_buffer_allocator;
 #ifdef NODE_ENABLE_VTUNE_PROFILING
   isolate_params.code_event_handler = vTune::GetVtuneCodeEventHandler();
@@ -49,6 +49,8 @@ void __StartNodeInstance(void* arg) {
     // Start debug agent when argv has --debug
     if (instance_data->use_debug_agent())
       StartDebug(node_env, debug_wait_connect);
+      
+    DEFINE_NATIVES();
 
     {
       Environment::AsyncCallbackScope callback_scope(node_env);
@@ -90,7 +92,7 @@ bool __Loop(bool once) {
   return more;
 }
 
-void __Start(int argc, char** argv) {
+void __Start(int argc, char** argv, void (*DEFINE_NATIVES)()) {
   PlatformInit();
 
   CHECK_GT(argc, 0);
@@ -119,7 +121,7 @@ void __Start(int argc, char** argv) {
                            const_cast<const char**>(argv), __exec_argc,
                            __exec_argv, use_debug_agent);
 
-  __StartNodeInstance(instance_data);
+  __StartNodeInstance(instance_data, DEFINE_NATIVES);
 }
 
 int __Shutdown() {
