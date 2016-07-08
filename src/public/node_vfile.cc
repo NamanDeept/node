@@ -67,7 +67,7 @@ typedef std::map<std::string, VFile*>::iterator VFIter;
 void AddFile(const char* path, char *contents, size_t length) {
   VFile *vf = new VFile(contents, length);
   files[path] = vf;
-  printf("Added >>>> %s \n", path);  
+
   std::string str = "../";
   str += path;
   files[str.c_str()] = vf;
@@ -75,9 +75,7 @@ void AddFile(const char* path, char *contents, size_t length) {
 
 VFile* GetFile(std::string &path) {
   VFIter iter = files.find(path);
-  printf("%s \n", path.c_str());
   if (iter != files.end()) {
-    printf("Fpund!\n");
     return iter->second;
   }
   return nullptr;
@@ -94,7 +92,7 @@ class NodeWrapVFile {
     std::string path = STRING_TO_STD(args[0]);
     VFile* vf = GetFile(path);
 
-    if (vf) {printf("Fpund2!\n");
+    if (vf) {
       JS_LOCAL_OBJECT obj = JS_NEW_EMPTY_OBJECT();
       JS_NAME_SET(obj, STD_TO_STRING("ino"), STD_TO_NUMBER(vf->ino));
       JS_NAME_SET(obj, STD_TO_STRING("length"), STD_TO_NUMBER(vf->length));
